@@ -10,6 +10,7 @@ Cara pakai (server sistem harus sudah berjalan, dari dalam folder system/):
   python evaluation/run_evaluation.py
   python evaluation/run_evaluation.py --runs 3 --base-url http://127.0.0.1:8000
   python evaluation/run_evaluation.py --runs 3 --min-interval 10   # beri jeda agar tidak kena batas kuota API
+  python evaluation/run_evaluation.py --only EVAL-01,EVAL-11 --runs 3 --min-interval 10   # hanya skenario tertentu
 
 Catatan: statistik waktu dan token dihitung hanya dari percobaan yang berhasil (HTTP 200);
 jumlah percobaan gagal dicatat terpisah di kolom failed_runs / status_codes.
@@ -106,12 +107,17 @@ def main():
     parser.add_argument("--runs", type=int, default=3, help="jumlah percobaan per skenario")
     parser.add_argument("--min-interval", type=float, default=0.0,
                         help="jeda minimum (detik) antar-awal request yang memakai LLM; 0 = tanpa jeda (mode burst)")
+    parser.add_argument("--only", default="",
+                        help="jalankan hanya skenario tertentu, pisahkan dengan koma (contoh: EVAL-01,EVAL-11)")
     parser.add_argument("--scenarios", default=str(BASE_DIR / "evaluation_test_scenarios.csv"))
     parser.add_argument("--output", default=str(BASE_DIR / "evaluation_results.csv"))
     parser.add_argument("--raw-output", default=str(BASE_DIR / "evaluation_runs_raw.csv"))
     args = parser.parse_args()
 
     scenarios = load_scenarios(Path(args.scenarios))
+    if args.only:
+        wanted = {x.strip() for x in args.only.split(",") if x.strip()}
+        scenarios = [sc for sc in scenarios if sc["scenario_id"] in wanted]
     print(f"{len(scenarios)} skenario dimuat, {args.runs} percobaan per skenario.")
 
     # Warm-up: request pertama membangun index FAISS, jadi tidak ikut dihitung

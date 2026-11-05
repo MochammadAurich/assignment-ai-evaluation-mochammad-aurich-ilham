@@ -58,18 +58,29 @@ async def detect_intent(query: str) -> str:
       - "faq"           -> pertanyaan informasi/kebijakan, arahkan ke RAG
       - "ticket_status"  -> permintaan cek status tiket, arahkan ke tool call
       - "unknown"        -> jawaban LLM di luar dua kategori di atas
-
-    Kriteria:
+ 
+    Kriteria (rule-first, LLM hanya untuk kasus ambigu):
       1. Jika query memuat ID tiket (TICKET-XXXX) -> ticket_status (aturan pasti, tanpa LLM).
-      2. Selain itu, LLM mengklasifikasikan query (structured prompt, jawab satu kata).
-      3. Jika LLM gagal, gunakan baseline keyword.
+      2. Jika query tidak memuat kata "tiket"/"ticket" sama sekali -> faq (aturan pasti, tanpa LLM).
+      3. Jika ada kata "tiket"/"ticket" tetapi tanpa ID (ambigu), LLM mengklasifikasikan query
+         (structured prompt, jawab satu kata).
+      4. Jika LLM gagal, gunakan baseline keyword.
+ 
+    Perbaikan Isu A: sebelumnya setiap query tanpa ID tiket memanggil LLM untuk klasifikasi
+    (rata-rata 4,0 detik dan 81 token per request pada baseline). Aturan 2 menghilangkan
+    panggilan itu untuk query FAQ biasa.
     """
     # Aturan 1: ada ID tiket pada query
     if extract_ticket_id(query) is not None:
         metrics.set_field("intent_source", "regex")
         return "ticket_status"
  
-    # Aturan 2: klasifikasi dengan LLM
+    # Aturan 2: tanpa kata terkait tiket -> faq, tanpa memanggil LLM
+    if not any(word in query.lower() for word in _TICKET_WORDS):
+        metrics.set_field("intent_source", "rule")
+        return "faq"
+ 
+    # Aturan 3: ada kata "tiket" tetapi tanpa ID (ambigu) -> klasifikasi dengan LLM
     try:
         with metrics.timed("llm_intent"):
             response = await _client.aio.models.generate_content(
@@ -80,7 +91,7 @@ async def detect_intent(query: str) -> str:
         metrics.set_field("intent_source", "llm")
         label = (response.text or "").strip().lower()
     except Exception:
-        # Aturan 3: fallback keyword
+        # Aturan 4: fallback keyword
         logger.exception("Intent detection via LLM gagal, memakai fallback keyword.")
         metrics.set_field("intent_source", "keyword_fallback")
         return _keyword_intent(query)

@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="IT Helpdesk Assistant API")
 
+# Perbaikan Isu C: batas panjang query. Query evaluasi terpanjang hanya 148 karakter; pada baseline,
+# query ~20.000 karakter diterima dan memakai 7.256 token (sekitar 15,6 kali rata-rata per request).
+MAX_QUERY_LENGTH = 500
+
 
 class AskRequest(BaseModel):
     query: str
@@ -50,6 +54,7 @@ async def ask(request: AskRequest, response: Response):
 
     Error handling:
       - query kosong            -> 400, status "error"
+      - query > MAX_QUERY_LENGTH -> 400, status "error"
       - intent tidak dikenali   -> ditangani router (status "error", intent "unknown")
       - LLM/layanan eksternal gagal merespons -> 503, status "error"
     """
@@ -57,6 +62,16 @@ async def ask(request: AskRequest, response: Response):
         return JSONResponse(
             status_code=400,
             content={"status": "error", "intent": "unknown", "data": "Pertanyaan tidak boleh kosong."},
+        )
+
+    if len(request.query) > MAX_QUERY_LENGTH:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "error",
+                "intent": "unknown",
+                "data": f"Pertanyaan terlalu panjang (maksimal {MAX_QUERY_LENGTH} karakter). Mohon persingkat pertanyaan Anda.",
+            },
         )
 
     request_metrics = metrics.start()
