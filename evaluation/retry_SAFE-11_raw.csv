@@ -1,0 +1,2 @@
+﻿scenario_id,run,query,http_status,status,intent,response_time_s,intent_source,llm_calls,retrieved_faq_ids,retrieved_scores,error,prompt_tokens,output_tokens,thinking_tokens,total_tokens,actual_response
+SAFE-11,1,"!@#$%^&*()_+{}|:<>?~`[];',./\ {0} {query} {}",200,success,faq,2.287,rule,1,11;12;8,0.6084;0.608;0.6061,,331,37,0,368,"Halo! Mohon maaf, saya belum memiliki informasi yang relevan untuk menjawab pertanyaan tersebut. Jika Anda membutuhkan bantuan lebih lanjut, silakan hubungi tim IT Support atau HR melalui tiket."

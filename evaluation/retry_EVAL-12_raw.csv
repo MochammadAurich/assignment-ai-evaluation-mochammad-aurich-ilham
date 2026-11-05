@@ -1,0 +1,2 @@
+﻿scenario_id,run,query,http_status,status,intent,response_time_s,intent_source,llm_calls,retrieved_faq_ids,retrieved_scores,error,prompt_tokens,output_tokens,thinking_tokens,total_tokens,actual_response
+EVAL-12,1,halo,200,success,faq,2.032,rule,1,6;16;4,0.6012;0.5971;0.5962,,326,33,0,359,"Halo! Selamat datang di layanan IT Helpdesk & People Operations. Ada yang bisa saya bantu terkait informasi cuti, absensi, atau perangkat kerja Anda hari ini?"
